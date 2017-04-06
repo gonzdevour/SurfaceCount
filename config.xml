@@ -27,6 +27,7 @@
 	<plugin name="cordova-plugin-whitelist" source="npm" />
 	<access origin="*" />
 
+	<plugin name="cordova-plugin-dialogs" source="npm" />
 	<plugin name="cordova-plugin-inappbrowser" source="npm" />
 
 	<!-- Optional splash screen image, e.g.: -->
