@@ -20,10 +20,6 @@
 
 	<preference name="deployment-target" value="8.0" />
 	<preference name="android-minSdkVersion" value="21" />
-	<plugin name="cordova-plugin-wkwebview-engine" />
-	<plugin name="cordova-plugin-file" />
-	<plugin name="cordova-plugin-httpd" />
-
 	<plugin name="cordova-plugin-whitelist" source="npm" />
 	<access origin="*" />
 
