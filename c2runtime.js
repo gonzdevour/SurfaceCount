@@ -20330,8 +20330,6 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.Function.prototype.acts.CallFunction,
 	cr.plugins_.Function.prototype.cnds.OnFunction,
 	cr.plugins_.Text.prototype.acts.SetText,
-	cr.system_object.prototype.cnds.EveryTick,
-	cr.system_object.prototype.exps.tickcount,
 	cr.plugins_.Button.prototype.cnds.OnClicked,
 	cr.system_object.prototype.acts.GoToLayoutByName,
 	cr.plugins_.Browser.prototype.cnds.OnBackButton,
