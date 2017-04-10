@@ -3415,7 +3415,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 				self["setSuspended"](false);
 			});
 		}
-		if (this.isEjecta)
+		if (this.isEjecta || this.isCocoonJs)
 		{
 			document.addEventListener("pagehide", function() {
 				self["setSuspended"](true);
@@ -4098,7 +4098,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		{
 			this.canvas.width = Math.round(w * dpr);
 			this.canvas.height = Math.round(h * dpr);
-			if (this.isEjecta)
+			if (this.isEjecta || this.isCocoonJs)
 			{
 				this.canvas.style.left = Math.floor(offx) + "px";
 				this.canvas.style.top = Math.floor(offy) + "px";
