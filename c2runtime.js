@@ -21100,17 +21100,17 @@ cr.plugins_.rex_TouchWrap = function(runtime)
     };
 }());
 cr.getObjectRefTable = function () { return [
-	cr.plugins_.Button,
 	cr.plugins_.Browser,
+	cr.plugins_.Button,
 	cr.plugins_.Function,
 	cr.plugins_.Rex_SysExt,
-	cr.plugins_.TextBox,
-	cr.plugins_.Text,
-	cr.plugins_.WebStorage,
-	cr.plugins_.cranberrygame_CordovaDialog,
-	cr.plugins_.Rex_WebstorageExt,
 	cr.plugins_.rex_TouchWrap,
+	cr.plugins_.Rex_WebstorageExt,
 	cr.plugins_.Sprite,
+	cr.plugins_.Text,
+	cr.plugins_.TextBox,
+	cr.plugins_.cranberrygame_CordovaDialog,
+	cr.plugins_.WebStorage,
 	cr.system_object.prototype.cnds.OnLayoutStart,
 	cr.system_object.prototype.acts.SetVar,
 	cr.system_object.prototype.exps["float"],
