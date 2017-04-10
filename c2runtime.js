@@ -21125,6 +21125,7 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.TextBox.prototype.cnds.PickByUID,
 	cr.plugins_.cranberrygame_CordovaDialog.prototype.exps.PromptInput,
 	cr.plugins_.TextBox.prototype.exps.Text,
+	cr.plugins_.WebStorage.prototype.acts.StoreLocal,
 	cr.plugins_.Function.prototype.acts.CallFunction,
 	cr.plugins_.Function.prototype.cnds.OnFunction,
 	cr.plugins_.Text.prototype.acts.SetText,
