@@ -16435,6 +16435,536 @@ cr.plugins_.Function = function(runtime)
 }());
 ;
 ;
+cr.plugins_.Rex_SysExt = function(runtime)
+{
+	this.runtime = runtime;
+};
+(function ()
+{
+	var pluginProto = cr.plugins_.Rex_SysExt.prototype;
+	pluginProto.Type = function(plugin)
+	{
+		this.plugin = plugin;
+		this.runtime = plugin.runtime;
+	};
+	var typeProto = pluginProto.Type.prototype;
+	typeProto.onCreate = function()
+	{
+	};
+	pluginProto.Instance = function(type)
+	{
+		this.type = type;
+		this.runtime = type.runtime;
+	};
+	var instanceProto = pluginProto.Instance.prototype;
+	instanceProto.onCreate = function()
+	{
+        this.tmp_insts = [];
+	};
+    instanceProto._pick_all = function (objtype)
+	{
+        if (!objtype)
+            return false;
+		if (!objtype.instances.length)
+			return false;
+        var sol = objtype.getCurrentSol();
+        sol.select_all = true;
+		objtype.applySolToContainer();
+        return true;
+	};
+    instanceProto._pick_inverse = function (objtype, uid, is_pick_all)
+	{
+        if (!objtype)
+            return false;
+		if (!objtype.instances.length)
+			return false;
+        var sol = objtype.getCurrentSol();
+        if (is_pick_all==1)
+        {
+            sol.select_all = true;
+            cr.shallowAssignArray(sol.instances, sol.getObjects());
+        }
+        var insts = sol.instances;
+        var insts_length = insts.length;
+        var i, inst;
+        var index = -1;
+        for (i=0; i < insts_length; i++)
+        {
+            inst = insts[i];
+            if (inst.uid == uid)
+            {
+                index = i;
+                break;
+            }
+        }
+        if (index != -1)
+            cr.arrayRemove(insts, index);
+        sol.select_all = false;
+        objtype.applySolToContainer();
+        return (sol.instances.length != 0);
+	};
+    instanceProto._quick_pick = function (objtype, uid)
+	{
+        if (!objtype)
+            return;
+		if (!objtype.instances.length)
+			return;
+        var inst = this.runtime.getObjectByUID(uid);
+        var is_find = (inst != null);
+        if (is_find)
+        {
+            var type_name = inst.type.name;
+            if (objtype.is_family)
+            {
+                is_find = false;
+                var members = objtype.members;
+                var cnt = members.length;
+                var i;
+                for (i=0; i<cnt; i++)
+                {
+                    if (type_name == members[i].name)
+                    {
+                        is_find = true;
+                        break;
+                    }
+                }
+            }
+            else
+                is_find = (type_name == objtype.name);
+        }
+        var sol = objtype.getCurrentSol();
+        if (is_find)
+            sol.pick_one(inst);
+        else
+            sol.instances.length = 0;
+        sol.select_all = false;
+        objtype.applySolToContainer();
+        return is_find;
+	};
+    instanceProto._get_layer = function(layerparam)
+    {
+        return (typeof layerparam == "number")?
+               this.runtime.getLayerByNumber(layerparam):
+               this.runtime.getLayerByName(layerparam);
+    };
+	var GetInstPropertyValue = function(inst, prop_index)
+	{
+	    var val;
+	    switch(prop_index)
+	    {
+	    case 0:   // uid
+	        val = inst.uid;
+	        break;
+	    case 1:   // x
+	        val = inst.x;
+	        break;
+	    case 2:   // y
+	        val = inst.y;
+	        break;
+	    case 3:   // width
+	        val = inst.width;
+	        break;
+	    case 4:   // height
+	        val = inst.height;
+	        break;
+	    case 5:   // angle
+	        val = inst.angle;
+	        break;
+	    case 6:   // opacity
+	        val = inst.opacity;
+	        break;
+	    default:
+	        val = 0;
+	        break;
+	    }
+	    return val;
+	};
+	function Cnds() {};
+	pluginProto.cnds = new Cnds();
+	Cnds.prototype.PickAll = function (objtype)
+	{
+		return this._pick_all(objtype);;
+	};
+	Cnds.prototype.PickInverse = function (objtype, uid, is_pick_all)
+	{
+        return this._pick_inverse(objtype, uid, is_pick_all);
+	};
+	Cnds.prototype.QuickPickByUID = function (objtype, uid)
+	{
+        return this._quick_pick(objtype, uid);
+	};
+	function Acts() {};
+	pluginProto.acts = new Acts();
+    Acts.prototype.__PickByUID = function (objtype, uid, is_pick_all)
+	{
+        if (!objtype)
+            return;
+		if (!objtype.instances.length)
+			return;
+        var sol = objtype.getCurrentSol();
+        if (is_pick_all==1)
+            sol.select_all = true;
+        var insts = sol.getObjects();
+        var insts_length = insts.length;
+        var i, inst;
+        var is_find = false;
+        for (i=0; i < insts_length; i++)
+        {
+            inst = insts[i];
+            if (inst.uid == uid)
+            {
+                is_find = true;
+                break;
+            }
+        }
+        if (is_find)
+            sol.pick_one(inst);
+        else
+            sol.instances.length = 0;
+        sol.select_all = false;
+        objtype.applySolToContainer();
+	};
+    Acts.prototype.PickByPropCmp = function (objtype, prop_index, cmp, value, is_pick_all)
+	{
+        if (!objtype)
+            return;
+		if (!objtype.instances.length)
+			return;
+        var sol = objtype.getCurrentSol();
+        if (is_pick_all==1)
+            sol.select_all = true;
+        var insts = sol.getObjects();
+        var insts_length = insts.length;
+        var i, inst;
+        this.tmp_insts.length = 0;
+        for (i=0; i < insts_length; i++)
+        {
+            inst = insts[i];
+            if (cr.do_cmp(GetInstPropertyValue(inst, prop_index), cmp, value))
+                this.tmp_insts.push(inst);
+        }
+        cr.shallowAssignArray(sol.instances, this.tmp_insts);
+        sol.select_all = false;
+	};
+    Acts.prototype.__PickInverse = function (objtype, uid, is_pick_all)
+	{
+        this._pick_inverse(objtype, uid, is_pick_all);
+	};
+    Acts.prototype.PickAll = function (objtype)
+	{
+        if (!objtype)
+            return;
+        var sol = objtype.getCurrentSol();
+        sol.select_all = true;
+		objtype.applySolToContainer();
+	};
+    Acts.prototype.PickByUID = function (objtype, uid)
+	{
+		var i, len, j, inst, families, instances, sol;
+        if (!objtype)
+            return;
+        inst = this.runtime.getObjectByUID(uid);
+        if (!inst)
+        	return;
+        sol = objtype.getCurrentSol();
+        if (!sol.select_all && sol.instances.indexOf(inst) === -1)
+        	return;		// not picked
+        if (objtype.is_family)
+        {
+        	families = objtype.families;
+        	for (i = 0, len = families.length; i < len; i++)
+        	{
+        		if (families[i] === inst.type)
+        		{
+        			sol.pick_one(inst);
+        			objtype.applySolToContainer();
+        			return;
+        		}
+        	}
+        }
+        else if (inst.type === objtype)
+        {
+        	sol.pick_one(inst);
+        	objtype.applySolToContainer();
+        	return;
+        }
+	};
+    Acts.prototype.PickInverse = function (objtype, uid, is_pick_all)
+	{
+	    var i, len, j, inst, families, instances, sol;
+        if (!objtype)
+            return;
+        sol = objtype.getCurrentSol();
+        if (is_pick_all)
+        {
+            sol.select_all = true;
+        }
+        if (sol.select_all)
+        {
+        	sol.select_all = false;
+        	sol.instances.length = 0;
+        	instances = objtype.instances;
+        	for (i = 0, len = instances.length; i < len; i++)
+        	{
+        		inst = instances[i];
+        		if (inst.uid !== uid)
+        			sol.instances.push(inst);
+        	}
+        	objtype.applySolToContainer();
+        	return;
+        }
+        else
+        {
+        	for (i = 0, j = 0, len = sol.instances.length; i < len; i++)
+        	{
+        		inst = sol.instances[i];
+        		sol.instances[j] = inst;
+        		if (inst.uid !== uid)
+        			j++;
+        	}
+        	sol.instances.length = j;
+        	objtype.applySolToContainer();
+        	return;
+        }
+	};
+    Acts.prototype.SetGroupActive = function (group, active)
+    {
+		var g = this.runtime.groups_by_name[group.toLowerCase()];
+		if (!g)
+			return;
+		switch (active) {
+		case 0:
+			g.setGroupActive(false);
+			break;
+		case 1:
+			g.setGroupActive(true);
+			break;
+		case 2:
+			g.setGroupActive(!g.group_active);
+			break;
+		}
+    };
+    Acts.prototype.SetLayerVisible = function (layerparam, visible_)
+    {
+        var layer;
+		if (cr.is_number(layerparam))
+			layer = this.runtime.getLayerByNumber(layerparam);
+		else
+			layer = this.runtime.getLayerByName(layerparam);
+        if (!layer)
+            return;
+        var is_visible = (visible_ == 1);
+		if (layer.visible !== is_visible)
+		{
+			layer.visible = is_visible;
+			this.runtime.redraw = true;
+		}
+    };
+    Acts.prototype.SwapPosByUID = function (uidA, uidB)
+    {
+        var instA = this.runtime.getObjectByUID(uidA);
+        var instB = this.runtime.getObjectByUID(uidB);
+        if (!instA || !instB)
+            return;
+        var pxA = instA.x, pyA = instA.y;
+        var pxB = instB.x, pyB = instB.y;
+        instA.x = pxB; instA.y = pyB;
+        instB.x = pxA; instB.y = pyA;
+        instA.set_bbox_changed();
+        instB.set_bbox_changed();
+    };
+	function Exps() {};
+	pluginProto.exps = new Exps();
+    Exps.prototype.Eval = function (ret, code_string)
+	{
+	    ret.set_any( eval( "("+code_string+")" ) );
+	};
+    Exps.prototype.ToHexString = function (ret, decval)
+	{
+	    ret.set_string( decval.toString(16) );
+	};
+    Exps.prototype.ToDecimalMark = function (ret, number_in, locales)
+	{
+	    ret.set_string( number_in.toLocaleString(locales) );
+	};
+    Exps.prototype.String2ByteCount = function (ret, s)
+	{
+	    var c = encodeURI(s).split(/%..|./).length - 1;
+	    ret.set_int( c );
+	};
+    Exps.prototype.SubString = function (ret, s, start, end)
+	{
+	    ret.set_string( s.substring(start, end) );
+	};
+    Exps.prototype.ToFixed = function (ret, n, dig)
+	{
+        if (dig == null)
+            dig = 10;
+	    ret.set_string( n["toFixed"](dig) );
+	};
+    Exps.prototype.ToPrecision = function (ret, n, dig)
+	{
+        if (dig == null)
+            dig = 10;
+	    ret.set_string( n["toPrecision"](dig) );
+	};
+    Exps.prototype.ToFixedNumber = function (ret, n, dig)
+	{
+        if (dig == null)
+            dig = 10;
+        var val = n["toFixed"](dig);
+	    ret.set_float( parseFloat( val ) );
+	};
+    Exps.prototype.Newline = function (ret, cnt)
+	{
+        if (cnt == null)
+            cnt = 1;
+        var i, s = "";
+        for (i=0; i<cnt; i++)
+            s += "\n";
+	    ret.set_string( s );
+	};
+    Exps.prototype.NormalRandom = function (ret, mean, stddev)
+	{
+        var u, v, r
+		do
+        {
+			u = 2*Math.random() -1;
+			v = 2*Math.random() -1;
+			r = u*u + v*v;
+		} while (r > 1 || r == 0);
+		var gauss = u * Math.sqrt(-2*Math.log(r)/r);
+	    ret.set_float( mean + gauss*stddev );
+	};
+    Exps.prototype.NormalRandomApproximation = function (ret, mean, stddev)
+	{
+        var g=0;
+        for (var i=0; i<6; i++)
+            g += Math.random();
+		g = (g - 3) / 3;
+	    ret.set_float( mean + g*stddev );
+	};
+	Exps.prototype.ReflectionAngle = function (ret, inputA, normalA)
+	{
+	    var normalangle = cr.to_radians(normalA);
+        var startangle = cr.to_radians(inputA);
+		var vx = Math.cos(startangle);
+		var vy = Math.sin(startangle);
+		var nx = Math.cos(normalangle);
+		var ny = Math.sin(normalangle);
+		var v_dot_n = vx * nx + vy * ny;
+		var rx = vx - 2 * v_dot_n * nx;
+		var ry = vy - 2 * v_dot_n * ny;
+        var ra = cr.angleTo(0, 0, rx, ry);
+	    ret.set_float(cr.to_degrees(ra));
+	};
+    var num2base32 = ["0","1","2","3","4","5","6","7","8","9",
+                                 "b","c","d","e","f","g","h","j","k","m",
+                                 "n","p","q","r","s","t","u","v","w","x",
+                                 "y","z"];
+    Exps.prototype.RandomBase32 = function (ret, dig)
+	{
+        var o = "";
+        for (var i=0;i<dig;i++)
+            o += num2base32[ Math.floor( Math.random()*32 ) ];
+	    ret.set_string( o );
+	};
+}());
+;
+;
+cr.plugins_.Rex_WebstorageExt = function(runtime)
+{
+	this.runtime = runtime;
+};
+(function ()
+{
+	var pluginProto = cr.plugins_.Rex_WebstorageExt.prototype;
+	pluginProto.Type = function(plugin)
+	{
+		this.plugin = plugin;
+		this.runtime = plugin.runtime;
+	};
+	var typeProto = pluginProto.Type.prototype;
+	typeProto.onCreate = function()
+	{
+	};
+	pluginProto.Instance = function(type)
+	{
+		this.type = type;
+		this.runtime = type.runtime;
+	};
+	var instanceProto = pluginProto.Instance.prototype;
+	instanceProto.onCreate = function()
+	{
+        this._webstorage_obj = null;
+	    this.fake_ret = {value:0,
+	                     set_any: function(value){this.value=value;},
+	                     set_int: function(value){this.value=value;},
+                         set_float: function(value){this.value=value;},
+                         set_string: function(value){this.value=value;},
+	                    };
+	};
+	instanceProto.onDestroy = function ()
+	{
+	};
+	instanceProto.webstorage_get = function ()
+	{
+        if (this._webstorage_obj != null)
+            return this._webstorage_obj;
+;
+        var plugins = this.runtime.types;
+        this._key_exist_fn = cr.plugins_.WebStorage.prototype.cnds.LocalStorageExists;
+        var name, plugin;
+        for (name in plugins)
+        {
+            plugin = plugins[name];
+            if (plugin.plugin.acts.StoreLocal == this._save_fn)
+            {
+                this._webstorage_obj = plugin.instances[0];
+                break;
+            }
+        }
+        return this._webstorage_obj;
+	};
+    instanceProto.load_value = function (key)
+    {
+        var webstorage_obj = this.webstorage_get();
+        cr.plugins_.WebStorage.prototype.exps.LocalValue.call(webstorage_obj, this.fake_ret, key);
+        return this.fake_ret.value;
+    };
+    instanceProto.save_value = function (key, value)
+    {
+        var webstorage_obj = this.webstorage_get();
+        cr.plugins_.WebStorage.prototype.acts.StoreLocal.call(webstorage_obj, key, value);
+    };
+    instanceProto.key_exist = function (key)
+    {
+        var webstorage_obj = this.webstorage_get();
+        return cr.plugins_.WebStorage.prototype.cnds.LocalStorageExists.call(webstorage_obj, key);
+    };
+	function Cnds() {};
+	pluginProto.cnds = new Cnds();
+	function Acts() {};
+	pluginProto.acts = new Acts();
+	function Exps() {};
+	pluginProto.exps = new Exps();
+    Exps.prototype.LocalValue = function (ret, _key, _default)
+	{
+	    var v;
+	    if (this.key_exist(_key))
+	    {
+	        v = this.load_value(_key);
+	    }
+	    else
+	    {
+	        v = _default;
+	        this.save_value(_key, v);
+	    }
+	    ret.set_any( v );
+	};
+}());
+;
+;
 cr.plugins_.Sprite = function(runtime)
 {
 	this.runtime = runtime;
@@ -18628,6 +19158,268 @@ cr.plugins_.TextBox = function(runtime)
 }());
 ;
 ;
+cr.plugins_.WebStorage = function(runtime)
+{
+	this.runtime = runtime;
+};
+(function()
+{
+	var pluginProto = cr.plugins_.WebStorage.prototype;
+	pluginProto.Type = function(plugin)
+	{
+		this.plugin = plugin;
+		this.runtime = plugin.runtime;
+	};
+	var typeProto = pluginProto.Type.prototype;
+	typeProto.onCreate = function()
+	{
+	};
+	pluginProto.Instance = function(type)
+	{
+		this.type = type;
+		this.runtime = type.runtime;
+	};
+	var instanceProto = pluginProto.Instance.prototype;
+	var prefix = "";
+	var is_arcade = (typeof window["is_scirra_arcade"] !== "undefined");
+	if (is_arcade)
+		prefix = "arcade" + window["scirra_arcade_id"];
+	var isSupported = false;
+	try {
+		localStorage.getItem("test");
+		isSupported = true;
+	}
+	catch (e)
+	{
+		isSupported = false;
+	}
+	instanceProto.onCreate = function()
+	{
+		if (!isSupported)
+		{
+			cr.logexport("[Construct 2] Webstorage plugin: local storage is not supported on this platform.");
+		}
+	};
+	function Cnds() {};
+	Cnds.prototype.LocalStorageEnabled = function()
+	{
+		return isSupported;
+	};
+	Cnds.prototype.SessionStorageEnabled = function()
+	{
+		return isSupported;
+	};
+	Cnds.prototype.LocalStorageExists = function(key)
+	{
+		if (!isSupported)
+			return false;
+		return localStorage.getItem(prefix + key) != null;
+	};
+	Cnds.prototype.SessionStorageExists = function(key)
+	{
+		if (!isSupported)
+			return false;
+		return sessionStorage.getItem(prefix + key) != null;
+	};
+	Cnds.prototype.OnQuotaExceeded = function ()
+	{
+		return true;
+	};
+	Cnds.prototype.CompareKeyText = function (key, text_to_compare, case_sensitive)
+	{
+		if (!isSupported)
+			return false;
+		var value = localStorage.getItem(prefix + key) || "";
+		if (case_sensitive)
+			return value == text_to_compare;
+		else
+			return cr.equals_nocase(value, text_to_compare);
+	};
+	Cnds.prototype.CompareKeyNumber = function (key, cmp, x)
+	{
+		if (!isSupported)
+			return false;
+		var value = localStorage.getItem(prefix + key) || "";
+		return cr.do_cmp(parseFloat(value), cmp, x);
+	};
+	pluginProto.cnds = new Cnds();
+	function Acts() {};
+	Acts.prototype.StoreLocal = function(key, data)
+	{
+		if (!isSupported)
+			return;
+		try {
+			localStorage.setItem(prefix + key, data);
+		}
+		catch (e)
+		{
+			this.runtime.trigger(cr.plugins_.WebStorage.prototype.cnds.OnQuotaExceeded, this);
+		}
+	};
+	Acts.prototype.StoreSession = function(key,data)
+	{
+		if (!isSupported)
+			return;
+		try {
+			sessionStorage.setItem(prefix + key, data);
+		}
+		catch (e)
+		{
+			this.runtime.trigger(cr.plugins_.WebStorage.prototype.cnds.OnQuotaExceeded, this);
+		}
+	};
+	Acts.prototype.RemoveLocal = function(key)
+	{
+		if (!isSupported)
+			return;
+		localStorage.removeItem(prefix + key);
+	};
+	Acts.prototype.RemoveSession = function(key)
+	{
+		if (!isSupported)
+			return;
+		sessionStorage.removeItem(prefix + key);
+	};
+	Acts.prototype.ClearLocal = function()
+	{
+		if (!isSupported)
+			return;
+		if (!is_arcade)
+			localStorage.clear();
+	};
+	Acts.prototype.ClearSession = function()
+	{
+		if (!isSupported)
+			return;
+		if (!is_arcade)
+			sessionStorage.clear();
+	};
+	Acts.prototype.JSONLoad = function (json_, mode_)
+	{
+		if (!isSupported)
+			return;
+		var d;
+		try {
+			d = JSON.parse(json_);
+		}
+		catch(e) { return; }
+		if (!d["c2dictionary"])			// presumably not a c2dictionary object
+			return;
+		var o = d["data"];
+		if (mode_ === 0 && !is_arcade)	// 'set' mode: must clear webstorage first
+			localStorage.clear();
+		var p;
+		for (p in o)
+		{
+			if (o.hasOwnProperty(p))
+			{
+				try {
+					localStorage.setItem(prefix + p, o[p]);
+				}
+				catch (e)
+				{
+					this.runtime.trigger(cr.plugins_.WebStorage.prototype.cnds.OnQuotaExceeded, this);
+					return;
+				}
+			}
+		}
+	};
+	pluginProto.acts = new Acts();
+	function Exps() {};
+	Exps.prototype.LocalValue = function(ret,key)
+	{
+		if (!isSupported)
+		{
+			ret.set_string("");
+			return;
+		}
+		ret.set_string(localStorage.getItem(prefix + key) || "");
+	};
+	Exps.prototype.SessionValue = function(ret,key)
+	{
+		if (!isSupported)
+		{
+			ret.set_string("");
+			return;
+		}
+		ret.set_string(sessionStorage.getItem(prefix + key) || "");
+	};
+	Exps.prototype.LocalCount = function(ret)
+	{
+		if (!isSupported)
+		{
+			ret.set_int(0);
+			return;
+		}
+		ret.set_int(is_arcade ? 0 : localStorage.length);
+	};
+	Exps.prototype.SessionCount = function(ret)
+	{
+		if (!isSupported)
+		{
+			ret.set_int(0);
+			return;
+		}
+		ret.set_int(is_arcade ? 0 : sessionStorage.length);
+	};
+	Exps.prototype.LocalAt = function(ret,n)
+	{
+		if (is_arcade || !isSupported)
+			ret.set_string("");
+		else
+			ret.set_string(localStorage.getItem(localStorage.key(n)) || "");
+	};
+	Exps.prototype.SessionAt = function(ret,n)
+	{
+		if (is_arcade || !isSupported)
+			ret.set_string("");
+		else
+			ret.set_string(sessionStorage.getItem(sessionStorage.key(n)) || "");
+	};
+	Exps.prototype.LocalKeyAt = function(ret,n)
+	{
+		if (is_arcade || !isSupported)
+			ret.set_string("");
+		else
+			ret.set_string(localStorage.key(n) || "");
+	};
+	Exps.prototype.SessionKeyAt = function(ret,n)
+	{
+		if (is_arcade || !isSupported)
+			ret.set_string("");
+		else
+			ret.set_string(sessionStorage.key(n) || "");
+	};
+	Exps.prototype.AsJSON = function (ret)
+	{
+		if (!isSupported)
+		{
+			ret.set_string("");
+			return;
+		}
+		var o = {}, i, len, k;
+		for (i = 0, len = localStorage.length; i < len; i++)
+		{
+			k = localStorage.key(i);
+			if (is_arcade)
+			{
+				if (k.substr(0, prefix.length) === prefix)
+				{
+					o[k.substr(prefix.length)] = localStorage.getItem(k);
+				}
+			}
+			else
+				o[k] = localStorage.getItem(k);
+		}
+		ret.set_string(JSON.stringify({
+			"c2dictionary": true,
+			"data": o
+		}));
+	};
+	pluginProto.exps = new Exps();
+}());
+;
+;
 /*
 cr.plugins_.cranberrygame_CordovaDialog = function(runtime)
 {
@@ -20308,33 +21100,39 @@ cr.plugins_.rex_TouchWrap = function(runtime)
     };
 }());
 cr.getObjectRefTable = function () { return [
-	cr.plugins_.Browser,
 	cr.plugins_.Button,
+	cr.plugins_.Browser,
 	cr.plugins_.Function,
-	cr.plugins_.rex_TouchWrap,
-	cr.plugins_.Sprite,
+	cr.plugins_.Rex_SysExt,
 	cr.plugins_.TextBox,
 	cr.plugins_.Text,
+	cr.plugins_.WebStorage,
 	cr.plugins_.cranberrygame_CordovaDialog,
-	cr.plugins_.TextBox.prototype.cnds.OnClicked,
+	cr.plugins_.Rex_WebstorageExt,
+	cr.plugins_.rex_TouchWrap,
+	cr.plugins_.Sprite,
+	cr.system_object.prototype.cnds.OnLayoutStart,
 	cr.system_object.prototype.acts.SetVar,
-	cr.plugins_.TextBox.prototype.exps.UID,
+	cr.system_object.prototype.exps["float"],
+	cr.plugins_.Rex_WebstorageExt.prototype.exps.LocalValue,
 	cr.plugins_.TextBox.prototype.cnds.CompareInstanceVar,
+	cr.plugins_.TextBox.prototype.acts.SetText,
+	cr.system_object.prototype.exps.str,
+	cr.plugins_.TextBox.prototype.cnds.OnClicked,
+	cr.plugins_.TextBox.prototype.exps.UID,
 	cr.plugins_.cranberrygame_CordovaDialog.prototype.acts.Prompt,
 	cr.plugins_.cranberrygame_CordovaDialog.prototype.cnds.OnPromptOkClicked,
 	cr.plugins_.TextBox.prototype.cnds.PickByUID,
-	cr.plugins_.TextBox.prototype.acts.SetText,
 	cr.plugins_.cranberrygame_CordovaDialog.prototype.exps.PromptInput,
-	cr.system_object.prototype.exps["float"],
 	cr.plugins_.TextBox.prototype.exps.Text,
 	cr.plugins_.Function.prototype.acts.CallFunction,
 	cr.plugins_.Function.prototype.cnds.OnFunction,
 	cr.plugins_.Text.prototype.acts.SetText,
+	cr.plugins_.Rex_SysExt.prototype.exps.ToFixed,
 	cr.plugins_.Button.prototype.cnds.OnClicked,
 	cr.system_object.prototype.acts.GoToLayoutByName,
 	cr.plugins_.Browser.prototype.cnds.OnBackButton,
 	cr.plugins_.Browser.prototype.acts.Close,
-	cr.system_object.prototype.cnds.OnLayoutStart,
 	cr.system_object.prototype.cnds.OnLoadFinished,
 	cr.system_object.prototype.acts.GoToLayout
 ];};
