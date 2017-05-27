@@ -21,6 +21,7 @@
 	<preference name="deployment-target" value="8.0" />
 	<preference name="android-minSdkVersion" value="21" />
 	<plugin name="cordova-plugin-whitelist" source="npm" />
+	<gap:plugin name="cordova-plugin-pindialog" source="npm" />
 	<access origin="*" />
 
 	<!-- Optional splash screen image, e.g.: -->
